@@ -1,0 +1,39 @@
+#version 450
+
+struct Particle {
+vec2 position;
+vec2 velocity;
+vec4 color;
+};
+
+// number of invocations of the compute shader in the current work group (local size of the shader ).
+// Because our data is in 1d : only need to specify x dimension
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+// last frame positions
+layout(std140, binding = 1) readonly buffer ParticleSSBOIn { // std140 : memory layout qualifiuer : determines how the memeber elements of the shader storage buffer are aligned in memory. required to map the buffers between host and gpu
+Particle particlesIn[ ];  // unbound number of particles (not having to specify the number os an advantage over uniform buffers )
+    
+};
+// current frame positions
+layout(std140, binding = 2) buffer ParticleSSBOOut {
+Particle particlesOut[ ];};
+
+void main()
+{
+    uint index = gl_GlobalInvocationID.x;
+
+    Particle particleIn = particlesIn[index];
+
+    particlesOut[index].position = particleIn.position + particleIn.velocity.xy ;
+    particlesOut[index].velocity = particleIn.velocity;
+
+    // Flip movement at window border
+    if ((particlesOut[index].position.x <= -1.0) || (particlesOut[index].position.x >= 1.0)) {
+        particlesOut[index].velocity.x = -particlesOut[index].velocity.x;
+    }
+    if ((particlesOut[index].position.y <= -1.0) || (particlesOut[index].position.y >= 1.0)) {
+        particlesOut[index].velocity.y = -particlesOut[index].velocity.y;
+    }
+
+}
